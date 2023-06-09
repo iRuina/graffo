@@ -2,8 +2,8 @@
   <div>
     <h1>Hola , soy un analizador de graffos</h1>
     <input type="file" @change="handleFileChange" accept=".xlsx" />
-    <div id="graph-container">
-      <svg id="graph-svg"></svg>
+    <div id="graph-container" class="mt-10">
+      <svg id="graph-svg"  ></svg>
     </div>
   </div>
 </template>
@@ -16,7 +16,7 @@ export default {
   name: "GraffoAnalyzer",
   data() {
     return {
-      graphData: {},
+      graphData: [],
     };
   },
   methods: {
@@ -34,10 +34,20 @@ export default {
         const range = XLSX.utils.decode_range(worksheet["!ref"]);
         const graphData = [];
 
-        graphData.push({
-          clave: "no tiene relacion",
-          valor: [],
-        });
+        graphData.push(
+          {
+            clave: "no tiene relacion",
+            valor: [],
+          },
+          {
+            clave: "pcmens-app-camerfirma-client",
+            valor: [],
+          },
+          {
+            clave: "pcmens-commons-manager",
+            valor: [],
+          }
+        );
 
         for (let row = range.s.r + 2; row <= range.e.r; row++) {
           // "+1" Para omitir la primera fila
@@ -53,14 +63,14 @@ export default {
               valor: null,
             };
             if (cellSecond && cellSecond.v) {
-              if (cellSecond.v == "x") {
+              if (cellSecond.v === "x") {
                 cellSecond.v = ["no tiene relacion"];
                 obj.valor = cellSecond.v;
-              } else{
+              } else {
                 obj.valor = cellSecond.v.split("\n");
-                if(obj.valor.length-1 ===' '){
+                if (obj.valor.length - 1 === " ") {
                   obj.valor.pop();
-                  console.log("Eliminado espacio vacio de " + cellFirst.v)
+                  console.log("Eliminado espacio vacio de " + cellFirst.v);
                 }
               }
             }
@@ -85,7 +95,7 @@ export default {
       // Define las dimensiones del SVG y el margen
       const width = +graphContainer.style("width").replace("px", "");
       const height = +graphContainer.style("height").replace("px", "");
-      const margin = { top: 5, right: 5, bottom: 5, left: 5 };
+      const margin = { top: 20, right: 20, bottom: 20, left: 20 };
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
 
@@ -99,39 +109,16 @@ export default {
           "link",
           d3.forceLink().id((d) => d.clave)
         )
-        .force("charge", d3.forceManyBody().strength(-100))
-        .force("center", d3.forceCenter(innerWidth / 2, innerHeight / 2));
+        .force("charge", d3.forceManyBody().strength(-800))
+        .force("center", d3.forceCenter(innerWidth / 2, innerHeight / 2))
+        .force("collide", d3.forceCollide().radius(30));
 
       // Crea los enlaces entre los nodos
-      let st = [];
-      console.log(this.graphData);
-      this.graphData.flatMap(
-        (d) => {
-          const listaValores = d.valor;
-          Array.prototype.forEach.call(listaValores,v =>{
-            let aux = {source: d.clave, target: v}
-            console.log(aux);
-            st.push(aux)
-            }
-          )
-         // listaValores.forEach((v) => ({ source: d.clave, target: v }));
-        }
-        //d.valor.forEach(v => ({ source: d.clave, target: v }))
-        //  d.valor.map(function (v) {
-        //    if (v == "no tiene relacion" || v == "x") {
-        //      return {
-        //        source: d.clave,
-        //        target: null,
-        //     };
-        //   } else {
-        //     return {
-        //        source: d.clave,
-        //       target: v,
-        //     };
-        //   }
-        // })
+
+      const links = this.graphData.flatMap((d) =>
+        d.valor.map((v) => ({ source: d.clave, target: v }))
       );
-      const links = st;
+
       // Crea los nodos del grafo
       const nodes = this.graphData.map((d) => ({ clave: d.clave }));
 
@@ -156,7 +143,7 @@ export default {
         .enter()
         .append("circle")
         .attr("class", "node")
-        .attr("r", 8)
+        .attr("r", 16)
         .attr("fill", (d) => d.color);
 
       const labelSelection = svg
@@ -167,9 +154,21 @@ export default {
         .attr("class", "label")
         .text((d) => d.clave)
         .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "central")
+        .attr("dominant-baseline", "middle")
         .attr("fill", "#333")
-        .attr("font-size", "12px");
+        .attr("font-size", "12px")
+        .call((text) =>
+          text
+            .attr("x", 0) // Ajusta la posición horizontal del texto dentro del nodo
+            .attr("y", 0) // Ajusta la posición vertical del texto dentro del nodo
+            .each(function () {
+              const bbox = this.getBBox();
+              const padding = 2; // Ajusta el espaciado entre el texto y los bordes del nodo
+              d3.select(this)
+                .attr("x", -bbox.width / 2 - padding)
+                .attr("y", -bbox.height / 2 - padding);
+            })
+        );
 
       // Define la función tick para actualizar la posición de los elementos en cada tick de la simulación
       const tick = () => {
@@ -198,6 +197,6 @@ export default {
 <style scoped>
 #graph-container {
   width: 100% !important;
-  height: 80vh !important;
+  height: 90vh !important;
 }
 </style>
