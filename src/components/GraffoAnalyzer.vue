@@ -3,7 +3,9 @@
     <h1>Hola , soy un analizador de graffos</h1>
     <input type="file" @change="handleFileChange" accept=".xlsx" />
     <div id="graph-container" class="mt-10">
-      <svg id="graph-svg" :width="width" :height="height"></svg>
+      <svg id="graph-svg" :width="width" :height="height">
+        <g class="graph"></g>
+      </svg>
     </div>
   </div>
 </template>
@@ -17,6 +19,8 @@ export default {
   data() {
     return {
       graphData: [],
+      width: 0,
+      height: 0,
     };
   },
   methods: {
@@ -114,7 +118,6 @@ export default {
         .force("collide", d3.forceCollide().radius(50));
 
       // Crea los enlaces entre los nodos
-
       const links = this.graphData.flatMap((d) =>
         d.valor.map((v) => ({ source: d.clave, target: v }))
       );
@@ -127,8 +130,11 @@ export default {
         node.color = colorScale(index);
       });
 
+      // Crea el elemento g.graph para contener los nodos y enlaces
+      const graph = svg.append("g").attr("class", "graph");
+
       // Crea los elementos SVG para representar los enlaces y los nodos
-      const linkSelection = svg
+      const linkSelection = graph
         .selectAll(".link")
         .data(links)
         .enter()
@@ -137,16 +143,23 @@ export default {
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6);
 
-      const nodeSelection = svg
+      const nodeSelection = graph
         .selectAll(".node")
         .data(nodes)
         .enter()
         .append("circle")
         .attr("class", "node")
         .attr("r", 16)
-        .attr("fill", (d) => d.color);
+        .attr("fill", (d) => d.color)
+        .call(
+          d3
+            .drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended)
+        );
 
-      const labelSelection = svg
+      const labelSelection = graph
         .selectAll(".label")
         .data(nodes)
         .enter()
@@ -159,11 +172,11 @@ export default {
         .attr("font-size", "12px")
         .call((text) =>
           text
-            .attr("x", 0) // Ajusta la posición horizontal del texto dentro del nodo
-            .attr("y", 0) // Ajusta la posición vertical del texto dentro del nodo
+            .attr("x", 0)
+            .attr("y", 0)
             .each(function () {
               const bbox = this.getBBox();
-              const padding = 2; // Ajusta el espaciado entre el texto y los bordes del nodo
+              const padding = 2;
               d3.select(this)
                 .attr("x", -bbox.width / 2 - padding)
                 .attr("y", -bbox.height / 2 - padding);
@@ -189,6 +202,24 @@ export default {
 
       // Ajusta el tamaño del SVG al contenedor
       svg.attr("width", width).attr("height", height);
+
+      // Funciones de arrastre de nodos
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
     },
   },
 };
