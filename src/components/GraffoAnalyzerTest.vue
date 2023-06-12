@@ -1,7 +1,6 @@
 <template>
   <div>
     <h1>Hola, soy un analizador de graffos</h1>
-    <input type="file" @change="handleFileChange" accept=".xlsx" />
     <div id="graph-container" class="mt-10">
       <svg id="graph-svg" :width="width" :height="height">
         <g class="graph"></g>
@@ -13,6 +12,7 @@
 <script>
 import * as d3 from "d3";
 import * as XLSX from "xlsx";
+import filePath from "@/assets/Analisis-PCM.xlsx";
 
 export default {
   name: "GraffoAnalyzer",
@@ -24,71 +24,73 @@ export default {
       selectedNode: null,
     };
   },
-  methods: {
-    handleFileChange(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
+  mounted() {
+    
+    const reader = new FileReader();
 
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
 
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
 
-        const range = XLSX.utils.decode_range(worksheet["!ref"]);
-        const graphData = [];
+      const range = XLSX.utils.decode_range(worksheet["!ref"] || "");
+      const graphData = [];
 
-        graphData.push(
-          {
-            clave: "no tiene relacion",
-            valor: [],
-          },
-          {
-            clave: "pcmens-app-camerfirma-client",
-            valor: [],
-          },
-          {
-            clave: "pcmens-commons-manager",
-            valor: [],
-          }
-        );
+      graphData.push(
+        {
+          clave: "no tiene relacion",
+          valor: [],
+        },
+        {
+          clave: "pcmens-app-camerfirma-client",
+          valor: [],
+        },
+        {
+          clave: "pcmens-commons-manager",
+          valor: [],
+        }
+      );
 
-        for (let row = range.s.r + 2; row <= range.e.r; row++) {
-          // "+1" Para omitir la primera fila
-          const cellAddressFirst = XLSX.utils.encode_cell({ r: row, c: 1 });
-          const cellAddressSecond = XLSX.utils.encode_cell({ r: row, c: 2 });
+      for (let row = range.s.r + 2 ; row <= range.e.r; row++) {
+        // "+1" Para omitir la primera fila
+        const cellAddressFirst = XLSX.utils.encode_cell({ r: row, c: 1 });
+        const cellAddressSecond = XLSX.utils.encode_cell({ r: row, c: 2 });
 
-          const cellFirst = worksheet[cellAddressFirst];
-          const cellSecond = worksheet[cellAddressSecond];
+        const cellFirst = worksheet[cellAddressFirst];
+        const cellSecond = worksheet[cellAddressSecond];
 
-          if (cellFirst && cellFirst.v) {
-            const obj = {
-              clave: cellFirst.v,
-              valor: null,
-            };
-            if (cellSecond && cellSecond.v) {
-              if (cellSecond.v === "x") {
-                cellSecond.v = ["no tiene relacion"];
-                obj.valor = cellSecond.v;
-              } else {
-                obj.valor = cellSecond.v.split("\n");
-                if (obj.valor.length - 1 === " ") {
-                  obj.valor.pop();
-                  console.log("Eliminado espacio vacio de " + cellFirst.v);
-                }
+        if (cellFirst && cellFirst.v) {
+          const obj = {
+            clave: cellFirst.v,
+            valor: null,
+          };
+          if (cellSecond && cellSecond.v) {
+            if (cellSecond.v === "x") {
+              cellSecond.v = ["no tiene relacion"];
+              obj.valor = cellSecond.v;
+            } else {
+              obj.valor = cellSecond.v.split("\n");
+              if (obj.valor.length - 1 === " ") {
+                obj.valor.pop();
+                console.log("Eliminado espacio vacio de " + cellFirst.v);
               }
             }
-            graphData.push(obj);
           }
+          graphData.push(obj);
         }
-        this.graphData = graphData;
-        console.log(JSON.stringify(this.graphData));
-        this.renderGraph(); // Renderizar el grafo después de procesar los datos
-      };
+      }
+      this.graphData = graphData;
+      console.log(JSON.stringify(this.graphData));
+      this.renderGraph(); // Renderizar el grafo después de procesar los datos
+    };
 
-      reader.readAsArrayBuffer(file);
-    },
+    fetch(filePath)
+      .then((response) => response.blob())
+      .then((blob) => reader.readAsArrayBuffer(blob));
+  },
+  methods: {
     renderGraph() {
       if (!this.graphData) {
         return; // Salir si this.graphData no tiene un valor válido

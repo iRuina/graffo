@@ -1,16 +1,16 @@
 <template>
   <div class="home">
     <img alt="Lupa" src="../assets/logo.png">
-    <GraffoAnalyzer/>
+    <GraffoAnalyzerTest/>
   </div>
 </template>
 
 <script>
-import GraffoAnalyzer from '@/components/GraffoAnalyzer.vue'
+import GraffoAnalyzerTest from '@/components/GraffoAnalyzerTest.vue'
 export default {
   name: 'HomeView',
   components: {
-    GraffoAnalyzer,
+    GraffoAnalyzerTest,
   }
 }
 </script>
