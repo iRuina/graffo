@@ -3,7 +3,7 @@
     <h1>Hola , soy un analizador de graffos</h1>
     <input type="file" @change="handleFileChange" accept=".xlsx" />
     <div id="graph-container" class="mt-10">
-      <svg id="graph-svg"  ></svg>
+      <svg id="graph-svg" :width="width" :height="height"></svg>
     </div>
   </div>
 </template>
@@ -109,9 +109,9 @@ export default {
           "link",
           d3.forceLink().id((d) => d.clave)
         )
-        .force("charge", d3.forceManyBody().strength(-800))
+        .force("charge", d3.forceManyBody().strength(-900))
         .force("center", d3.forceCenter(innerWidth / 2, innerHeight / 2))
-        .force("collide", d3.forceCollide().radius(30));
+        .force("collide", d3.forceCollide().radius(50));
 
       // Crea los enlaces entre los nodos
 
@@ -197,6 +197,6 @@ export default {
 <style scoped>
 #graph-container {
   width: 100% !important;
-  height: 90vh !important;
+  height: 1200px !important;
 }
 </style>
